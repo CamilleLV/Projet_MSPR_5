@@ -1,0 +1,15 @@
+{
+    "villes": [
+      {"nom": "Lille", "lat": 50.633333, "lon": 3.066667},
+      {"nom": "Nice", "lat": 43.700000, "lon": 7.250000},
+      {"nom": "Strasbourg", "lat": 48.583328, "lon": 7.75},
+      {"nom": "Paris", "lat": 48.866667, "lon": 2.333333},
+      {"nom": "Rennes", "lat": 48.083328, "lon": -1.68333},
+      {"nom": "Nantes", "lat": 47.216671, "lon": -1.55},
+      {"nom": "Marseille", "lat": 43.300000, "lon": 5.400000},
+      {"nom": "Toulouse", "lat": 43.599998, "lon": 1.43333},
+      {"nom": "Lyon", "lat": 45.750000, "lon": 4.850000},
+      {"nom": "Bordeaux", "lat": 44.833328, "lon": -0.56667}
+    ]
+  }
+  
