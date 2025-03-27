@@ -5,22 +5,34 @@ import pandas as pd
 from dotenv import load_dotenv
 from google.cloud import storage
 from datetime import datetime
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
 
 # Charger les variables d'environnement
 load_dotenv()
 
-# # Variables sensibles
-# AQ_API_KEY = os.getenv("AQ_API_KEY")
-# WM_API_KEY = os.getenv("WM_API_KEY")
-# GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'start_date': datetime(2024, 3, 27),
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
+
+dag = DAG(
+    'mon_dag',
+    default_args=default_args,
+    description='DAG du script Python pour le MSPR EID BLOC 5',
+    schedule_interval=timedelta(hours=1),  # Exécution quotidienne
+)
+
+
 
 AQ_API_KEY="0a9f14cb9f62f05c2345f409f06f317a0299628f"
 WM_API_KEY="9d1816e1bb6115e8059fe87779b95446"
 GCS_BUCKET_NAME="bucket_mspr5"
 
-# # Charger les villes depuis le fichier JSON
-# with open("C:/Users/camil/OneDrive - Ifag Paris/Cours/MSPR_EID_BLOC_5/Projet_MSPR_5/ville_traitement.json", "r") as file:
-#     VILLES = json.load(file)["villes"]
 
 VILLES = [
       {"nom": "Lille", "lat": 50.633333, "lon": 3.066667},
@@ -36,9 +48,14 @@ VILLES = [
     ]
 
 
+
+
 # URLs des API
 AQ_URL_TEMPLATE = "https://api.waqi.info/feed/{city}/?token={api_key}"
 WM_URL_TEMPLATE = "https://api.openweathermap.org/data/3.0/onecall/day_summary?lat={lat}&lon={lon}&date={date}&units=metric&appid={api_key}"
+for villes in VILLES:
+    print(f"Hello {villes}")
+    url = AQ_URL_TEMPLATE.format(city=villes, api_key=AQ_API_KEY)
 
 def fetch_air_quality(city):
     url = AQ_URL_TEMPLATE.format(city=city, api_key=AQ_API_KEY)
@@ -153,3 +170,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# Création des tâches
+task1 = PythonOperator(
+    task_id='executer_script',
+    python_callable=main,
+    dag=dag,
+)
+
+# Lancement des tâches
+task1
