@@ -1,0 +1,11 @@
+﻿Ville;Nom_Complet;Information_Qualite_Air;Indice_IQA_PM_25;Indice_IQA_PM_10;Indice_IQA_No2;Indice_IQA_So2;Indice_IQA_Ozone;Temperature;Humidite;Vent;date;Date_Observation;Type_Temps;Description_Temps;Température_Minimale;Température_Maximale;Température_Ressentie;Humidité;Pression_Atmosphérique;Niveau_Mer;Pression_Sol;Vitesse_Vent;Direction_Vent;Rafales_Vent;Précipitations_1h;Couverture_Nuageuse;Heure_Lever_Soleil;Heure_Coucher_Soleil
+Lille;Lille Leeds, Nord-Pas-de-Calais, France;61;61;8;20,6;1,1;15,6;5;79;0,4;28/03/2025;28/03/2025;Clouds;couvert;10,79;10,79;9,86;74;1013;1013;1010;5,14;260;0;0;100;05:32:29;18:12:50
+Nice;Nice Arson, PACA, France;30;21;13;11,4;1,1;29,9;18;42;1,5;28/03/2025;28/03/2025;Clear;ciel dégagé;17,87;17,87;16,99;49;1007;1007;988;1,54;150;0;0;0;05:19:39;17:52:13
+Strasbourg;Clemenceau, Strasbourg, Alsace, France;29;63;29;17,1;;11,4;11,5;62;1,8;28/03/2025;28/03/2025;Clouds;peu nuageux;13,54;13,54;12,44;57;1013;1013;996;1,03;0;0;0;20;05:15:02;17:52:49
+Paris;Paris;53;53;18;17,8;0,6;14,8;7,6;86,2;3,7;28/03/2025;28/03/2025;Clouds;couvert;10,4;10,4;9,74;86;1015;1015;1005;5,14;280;0;0;100;05:36:30;18:14:40
+Rennes;Thabor, Rennes, France;35;35;13;3,5;;23,5;11;81;4,6;28/03/2025;28/03/2025;Clouds;couvert;10,85;10,85;10,21;85;1016;1016;1009;4,63;250;0;0;100;05:53:01;18:30:18
+Nantes;Bouteillerie, Nantes, Loire, France;52;52;23;6;;18,9;10;87;2,5;28/03/2025;28/03/2025;Clouds;couvert;12;12;11,42;83;1017;1017;1014;2,57;200;0;0;100;05:52:58;18:29:16
+Marseille;Marseille 5 Avenues, PACA, France;30;30;15;6,5;0,4;20,9;13,8;67;3;28/03/2025;28/03/2025;Clouds;couvert;16,18;16,18;15,24;53;1010;1010;1003;3,13;296;9,83;0;85;05:27:14;17:59:26
+Toulouse;Toulouse Berthelot, France;64;64;23;4;;31,2;13;71;8,2;28/03/2025;28/03/2025;Clouds;nuageux;13,08;13,08;12,27;70;1017;1017;996;8,23;280;0;0;75;05:42:56;18:15:27
+Lyon;Lyon Centre, France;48;48;;9,5;;17;12;62;3,6;28/03/2025;28/03/2025;Clouds;couvert;13,66;13,66;12,7;62;1013;1013;981;3,6;360;0;0;100;05:28:12;18:02:51
+Bordeaux;Gambetta, Bordeaux, Aquitaine;50;50;28;6,9;;14,7;;;;28/03/2025;28/03/2025;Clouds;nuageux;15,05;15,05;14,2;61;1018;1018;1013;6,17;290;0;0;75;05:50:19;18:24:04

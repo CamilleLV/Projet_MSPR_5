@@ -4,19 +4,16 @@ import requests
 import pandas as pd
 from dotenv import load_dotenv
 from google.cloud import storage
-from datetime import datetime
+from datetime import datetime, timezone
+import pytz
 
 # Charger les variables d'environnement
 load_dotenv()
 
 # # Variables sensibles
-# AQ_API_KEY = os.getenv("AQ_API_KEY")
-# WM_API_KEY = os.getenv("WM_API_KEY")
-# GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
-
-AQ_API_KEY="0a9f14cb9f62f05c2345f409f06f317a0299628f"
-WM_API_KEY="9d1816e1bb6115e8059fe87779b95446"
-GCS_BUCKET_NAME="bucket_mspr5"
+AQ_API_KEY = os.getenv("AQ_API_KEY")
+WM_API_KEY = os.getenv("WM_API_KEY")
+GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
 
 # # Charger les villes depuis le fichier JSON
 # with open("C:/Users/camil/OneDrive - Ifag Paris/Cours/MSPR_EID_BLOC_5/Projet_MSPR_5/ville_traitement.json", "r") as file:
@@ -36,9 +33,15 @@ VILLES = [
     ]
 
 
+
+
 # URLs des API
 AQ_URL_TEMPLATE = "https://api.waqi.info/feed/{city}/?token={api_key}"
-WM_URL_TEMPLATE = "https://api.openweathermap.org/data/3.0/onecall/day_summary?lat={lat}&lon={lon}&date={date}&units=metric&appid={api_key}"
+WM_URL_TEMPLATE = "https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&lang=fr&appid={api_key}"
+# "https://api.openweathermap.org/data/3.0/onecall/day_summary?lat={lat}&lon={lon}&date={date}&units=metric&appid={api_key}"
+# for villes in VILLES:
+#     print(f"Hello {villes}")
+#     url = AQ_URL_TEMPLATE.format(city=villes, api_key=AQ_API_KEY)
 
 def fetch_air_quality(city):
     url = AQ_URL_TEMPLATE.format(city=city, api_key=AQ_API_KEY)
@@ -49,8 +52,18 @@ def fetch_air_quality(city):
         print(f"Erreur API AirQuality pour {city}: {response.status_code}")
         return None
 
-def fetch_weather_map(lat, lon, date):
-    url = WM_URL_TEMPLATE.format(lat=lat, lon=lon, date=date, api_key=WM_API_KEY)
+def fetch_weather_map(lat, lon):
+
+    # Définir le fuseau horaire (Paris, UTC+1 ou UTC+2 selon l'heure d'été)
+    tz = pytz.timezone('Europe/Paris')
+
+    # Obtenir la date actuelle avec fuseau horaire
+    now = datetime.now(tz)
+
+    date_du_jour = now.strftime('%Y-%m-%d')
+
+
+    url = WM_URL_TEMPLATE.format(lat=lat, lon=lon, date=date_du_jour, api_key=WM_API_KEY)
     response = requests.get(url)
     if response.status_code == 200:
         return response.json()
@@ -58,24 +71,46 @@ def fetch_weather_map(lat, lon, date):
         print(f"Erreur API WeatherMap pour {lat}, {lon}: {response.status_code}")
         return None
 
+# Définir la fonction qui retourne le niveau de pollution et la description
+def get_air_quality_level(aqi):
+
+    
+    aqi = pd.to_numeric(str(aqi).replace(",", "."))
+    if aqi <= 50:
+        return "Bon", "Qualité de l'air satisfaisante, aucun risque pour la santé."
+    elif 51 <= aqi <= 100:
+        return "Modéré", "Qualité de l'air acceptable, mais certains polluants peuvent poser un risque modéré pour une petite partie de la population."
+    elif 101 <= aqi <= 150:
+        return "Mauvais pour les groupes sensibles", "Les groupes sensibles peuvent ressentir des effets sur la santé, mais la population générale est peu concernée."
+    elif 151 <= aqi <= 200:
+        return "Mauvais", "Tout le monde peut commencer à ressentir des effets sur la santé. Les groupes sensibles peuvent avoir des effets plus graves."
+    elif 201 <= aqi <= 300:
+        return "Très mauvais", "Avertissement de santé pour les situations d'urgence. La population entière est plus susceptible d'être affectée."
+    else:  # aqi > 300
+        return "Dangereux", "Alerte de santé : tout le monde peut ressentir des effets graves sur la santé."
+
+
 def transform_air_quality(data, city):
     if not data or data.get("status") != "ok":
         return None
     
     aq_data = data["data"]
+
+    # Ajouter le ":" dans le décalage horaire pour respecter le format ISO 8601
+    date_formatee = datetime.today().strftime("%Y-%m-%d")
     df = pd.DataFrame([{  
-        "city": city,
-        "Nom complet": aq_data["city"]["name"],
-        "aqi": aq_data["aqi"],
-        "pm25": aq_data["iaqi"].get("pm25", {}).get("v", None),
-        "pm10": aq_data["iaqi"].get("pm10", {}).get("v", None),
-        "no2": aq_data["iaqi"].get("no2", {}).get("v", None),
-        "so2": aq_data["iaqi"].get("so2", {}).get("v", None),
-        "o3": aq_data["iaqi"].get("o3", {}).get("v", None),
-        "temperature": aq_data["iaqi"].get("t", {}).get("v", None),
-        "humidity": aq_data["iaqi"].get("h", {}).get("v", None),
-        "wind": aq_data["iaqi"].get("w", {}).get("v", None),
-        "date": aq_data["time"]["iso"]
+        "Ville": city,
+        # "Nom_Complet": aq_data["city"]["name"],
+        "Information_Qualite_Air": aq_data["aqi"],
+        "Indice_IQA_PM_25": aq_data["iaqi"].get("pm25", {}).get("v", None),
+        "Indice_IQA_PM_10": aq_data["iaqi"].get("pm10", {}).get("v", None),
+        "Indice_IQA_No2": aq_data["iaqi"].get("no2", {}).get("v", None),
+        "Indice_IQA_So2": aq_data["iaqi"].get("so2", {}).get("v", None),
+        "Indice_IQA_Ozone": aq_data["iaqi"].get("o3", {}).get("v", None),
+        "Temperature (°C)": aq_data["iaqi"].get("t", {}).get("v", None),
+        "Humidite_AQ": aq_data["iaqi"].get("h", {}).get("v", None),
+        "Vent": aq_data["iaqi"].get("w", {}).get("v", None),
+        "date": date_formatee
     }])
     return df
 
@@ -83,25 +118,37 @@ def transform_weather_map(data, city, date):
     if not data:
         return None
     
+    sunrise = datetime.fromtimestamp(data["sys"]["sunrise"], tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+    sunset = datetime.fromtimestamp(data["sys"]["sunset"], tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+
+    # Création du DataFrame
     df = pd.DataFrame([{  
-        "city": city,
-        "date": date,
-        "temperature_min": data["temperature"]["min"],
-        "temperature_max": data["temperature"]["max"],
-        "humidity": data["humidity"]["afternoon"],
-        "pressure": data["pressure"]["afternoon"],
-        "wind_speed": data["wind"]["max"]["speed"],
-        "wind_direction": data["wind"]["max"]["direction"],
-        "precipitation": data["precipitation"]["total"],
-        "cloud_cover": data["cloud_cover"]["afternoon"]
+        "Ville": city,
+        # "Date_Observation": date,
+        # "Type_Temps": data["weather"][0]["main"],
+        "Description_Temps": data["weather"][0]["description"],
+        # "Température_Minimale": data["main"]["temp_min"],
+        # "Température_Maximale": data["main"]["temp_max"],
+        "Température_Ressentie (°C)": data["main"]["feels_like"],
+        "Humidite_WM": data["main"]["humidity"],
+        "Pression_Atmosphérique (hPa)": data["main"]["pressure"],
+        "Niveau_Mer (hPa)": data["main"]["sea_level"],
+        "Pression_Sol (hPa)": data["main"]["grnd_level"],
+        "Vitesse_Vent (m/sec)": data["wind"]["speed"],
+        "Direction_Vent (DEG)": data["wind"]["deg"],
+        "Rafales_Vent (m/sec)": data["wind"].get("gust", 0),
+        "Précipitations_1h (mm/h)": data.get("rain", {}).get("1h", 0),
+        "Couverture_Nuageuse (%)": data["clouds"]["all"],
+        "Heure_Lever_Soleil": sunrise,
+        "Heure_Coucher_Soleil": sunset
     }])
     return df
 
 def save_csv(df, filename):
     if os.path.exists(filename):
-        df.to_csv(filename, mode='a', header=False, index=False)
+        df.to_csv(filename, mode='a', sep=";", header=False, index=False, encoding="utf-8-sig")
     else:
-        df.to_csv(filename, index=False)
+        df.to_csv(filename, mode='a', sep=";", index=False, encoding="utf-8-sig")
     print(f"Données sauvegardées en local : {filename}")
 
 def save_to_gcs(df, filename):
@@ -115,6 +162,7 @@ def save_to_gcs(df, filename):
 def main():
     all_aq_data = []
     all_weather_data = []
+    all_merged_df = []
     date_du_jour = datetime.today().strftime("%Y-%m-%d")
 
     save_path = "C:/Users/camil/OneDrive - Ifag Paris/Cours/MSPR_EID_BLOC_5/Projet_MSPR_5/"
@@ -124,7 +172,7 @@ def main():
         
         # Récupération des données
         aq_data = fetch_air_quality(city)
-        weather_data = fetch_weather_map(lat, lon, "2025-02-12")  # Exemple avec une date fixe
+        weather_data = fetch_weather_map(lat, lon)  # Exemple avec une date fixe
         
         # Transformation des données
         print(f"Transformation des données de Air Quality pour : {city}")
@@ -132,6 +180,100 @@ def main():
         print(f"Transformation des données de WeatherMap pour : {city}")
         weather_df = transform_weather_map(weather_data, city, date_du_jour)
         
+        # Fusion des DataFrames
+        merged_df = pd.merge(aq_df, weather_df, on="Ville", how="outer")
+
+
+        # Remplacer les valeurs manquantes par None (NULL)
+        cols_to_null = [
+        "Information_Qualite_Air", 
+        "Indice_IQA_PM_25", 
+        "Indice_IQA_PM_10", 
+        "Indice_IQA_No2", 
+        "Indice_IQA_So2", 
+        "Indice_IQA_Ozone", 
+        "Temperature (°C)", 
+        "Humidite_AQ", 
+        "Vent", 
+        "Température_Ressentie (°C)", 
+        "Humidite_WM", 
+        "Pression_Atmosphérique (hPa)", 
+        "Niveau_Mer (hPa)", 
+        "Pression_Sol (hPa)", 
+        "Vitesse_Vent (m/sec)", 
+        "Direction_Vent (DEG)", 
+        "Rafales_Vent (m/sec)", 
+        "Précipitations_1h (mm/h)", 
+        "Couverture_Nuageuse (%)", 
+        "Heure_Lever_Soleil", 
+        "Heure_Coucher_Soleil"
+    ]
+        cols_avec_virgule = [
+        "Information_Qualite_Air", 
+        "Indice_IQA_PM_25", 
+        "Indice_IQA_PM_10", 
+        "Indice_IQA_No2", 
+        "Indice_IQA_So2", 
+        "Indice_IQA_Ozone", 
+        "Temperature (°C)", 
+        "Vent", 
+        "Température_Ressentie (°C)", 
+        "Pression_Atmosphérique (hPa)", 
+        "Niveau_Mer (hPa)", 
+        "Pression_Sol (hPa)", 
+        "Vitesse_Vent (m/sec)", 
+        "Direction_Vent (DEG)", 
+        "Rafales_Vent (m/sec)", 
+        "Précipitations_1h (mm/h)", 
+        "Couverture_Nuageuse (%)",
+        "Humidité (%)"
+    ]
+
+
+        print(merged_df.head())
+        merged_df[cols_to_null] = merged_df[cols_to_null].fillna(pd.NA)
+
+        # Formater les colonnes de lever et coucher du soleil en HH:MM:SS
+        merged_df["Heure_Lever_Soleil"] = pd.to_datetime(merged_df["Heure_Lever_Soleil"]).dt.strftime('%H:%M:%S')
+        merged_df["Heure_Coucher_Soleil"] = pd.to_datetime(merged_df["Heure_Coucher_Soleil"]).dt.strftime('%H:%M:%S')
+
+        # Conversion des températures de Kelvin à Celsius (sauf Temperature qui est déjà en °C)
+        temp_cols = ["Température_Ressentie (°C)"]
+        merged_df[temp_cols] = merged_df[temp_cols].apply(lambda x: x - 273.15)
+
+        # Arrondir la colonne "Température_Ressentie (°C)" à deux chiffres après la virgule
+        merged_df["Température_Ressentie (°C)"] = merged_df["Température_Ressentie (°C)"].round(2)
+
+        merged_df["Humidite_WM"] = pd.to_numeric(merged_df["Humidite_WM"])
+        merged_df["Humidite_AQ"] = pd.to_numeric(merged_df["Humidite_AQ"])
+
+        # Fusionner les colonnes "Humidite_WM" et "Humidite_AQ" en "Humidité (%)"
+        merged_df["Humidité (%)"] = merged_df[["Humidite_WM", "Humidite_AQ"]].mean(axis=1)
+        merged_df["Humidité (%)"] = merged_df["Humidité (%)"].round(2)
+
+        # Si tu veux supprimer les colonnes originales après la fusion :
+        merged_df = merged_df.drop(columns=["Humidite_WM", "Humidite_AQ"])
+
+        # Ajouter la colonne Air_Quality_Level et Description
+        merged_df[['Niveau_Qualite_Air', 'Implications_Sante']] = merged_df['Information_Qualite_Air'].apply(
+            lambda x: pd.Series(get_air_quality_level(x))
+        )
+        
+        # Remplacement du point par une virgule pour les décimales
+        merged_df[cols_avec_virgule] = merged_df[cols_avec_virgule].applymap(lambda x: str(x).replace(".", ",") if isinstance(x, (float, int)) else x)
+
+        ordered_columns = [
+            "Ville", "date", "Description_Temps", "Niveau_Qualite_Air", "Implications_Sante", 
+            "Temperature (°C)", "Température_Ressentie (°C)", "Humidité (%)", "Précipitations_1h (mm/h)", 
+            "Couverture_Nuageuse (%)", "Information_Qualite_Air", "Indice_IQA_PM_25", "Indice_IQA_PM_10", 
+            "Indice_IQA_No2", "Indice_IQA_So2", "Indice_IQA_Ozone", "Pression_Atmosphérique (hPa)", 
+            "Niveau_Mer (hPa)", "Pression_Sol (hPa)", "Vent", "Vitesse_Vent (m/sec)", 
+            "Direction_Vent (DEG)", "Rafales_Vent (m/sec)", "Heure_Lever_Soleil", "Heure_Coucher_Soleil"
+        ]
+
+        # Réorganiser le DataFrame selon l'ordre des colonnes
+        merged_df = merged_df[ordered_columns]
+
         # Ajout aux listes
         if aq_df is not None:
             print(f"Ajout aux listes de air quality pour {city}")
@@ -139,6 +281,9 @@ def main():
         if weather_df is not None:
             print(f"Ajout aux listes de weathermap pour {city}")
             all_weather_data.append(weather_df)
+        if merged_df is not None:
+            print(f"Ajout aux listes de weathermap pour {city}")
+            all_merged_df.append(merged_df)
     
     # Sauvegarde finale
     if all_aq_data:
@@ -150,6 +295,11 @@ def main():
         final_weather_df = pd.concat(all_weather_data, ignore_index=True)
         save_csv(final_weather_df, f"{save_path}Ville_Meteo.csv")
         # save_to_gcs(final_weather_df, "Ville_Meteo.csv")
+    
+    if all_merged_df:
+        final_merged_df = pd.concat(all_merged_df, ignore_index=True)
+        save_csv(final_merged_df, f"{save_path}Ville_Stat_Meteo.csv")
+        # save_to_gcs(final_merged_df, "Ville_Stat_Meteo.csv")
 
 if __name__ == "__main__":
     main()
