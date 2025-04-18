@@ -33,8 +33,6 @@ VILLES = [
     ]
 
 
-
-
 # URLs des API
 AQ_URL_TEMPLATE = "https://api.waqi.info/feed/{city}/?token={api_key}"
 WM_URL_TEMPLATE = "https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&lang=fr&appid={api_key}"
@@ -74,20 +72,18 @@ def fetch_weather_map(lat, lon):
 # Définir la fonction qui retourne le niveau de pollution et la description
 def get_air_quality_level(aqi):
 
-    
-    aqi = pd.to_numeric(str(aqi).replace(",", "."))
     if aqi <= 50:
-        return "Bon", "Qualité de l'air satisfaisante, aucun risque pour la santé."
+        return 1
     elif 51 <= aqi <= 100:
-        return "Modéré", "Qualité de l'air acceptable, mais certains polluants peuvent poser un risque modéré pour une petite partie de la population."
+        return 2
     elif 101 <= aqi <= 150:
-        return "Mauvais pour les groupes sensibles", "Les groupes sensibles peuvent ressentir des effets sur la santé, mais la population générale est peu concernée."
+        return 3
     elif 151 <= aqi <= 200:
-        return "Mauvais", "Tout le monde peut commencer à ressentir des effets sur la santé. Les groupes sensibles peuvent avoir des effets plus graves."
+        return 4
     elif 201 <= aqi <= 300:
-        return "Très mauvais", "Avertissement de santé pour les situations d'urgence. La population entière est plus susceptible d'être affectée."
+        return 5
     else:  # aqi > 300
-        return "Dangereux", "Alerte de santé : tout le monde peut ressentir des effets graves sur la santé."
+        return 6
 
 
 def transform_air_quality(data, city):
@@ -146,9 +142,9 @@ def transform_weather_map(data, city, date):
 
 def save_csv(df, filename):
     if os.path.exists(filename):
-        df.to_csv(filename, mode='a', sep=";", header=False, index=False, encoding="utf-8-sig")
+        df.to_csv(filename, mode='a', header=False, index=False, encoding="utf-8-sig")
     else:
-        df.to_csv(filename, mode='a', sep=";", index=False, encoding="utf-8-sig")
+        df.to_csv(filename, mode='a', index=False, encoding="utf-8-sig")
     print(f"Données sauvegardées en local : {filename}")
 
 def save_to_gcs(df, filename):
@@ -181,7 +177,7 @@ def main():
         weather_df = transform_weather_map(weather_data, city, date_du_jour)
         
         # Fusion des DataFrames
-        merged_df = pd.merge(aq_df, weather_df, on="Ville", how="outer")
+        merged_df = pd.merge(aq_df, weather_df, on="Ville", how="outer")  # type: ignore
 
 
         # Remplacer les valeurs manquantes par None (NULL)
@@ -255,15 +251,12 @@ def main():
         merged_df = merged_df.drop(columns=["Humidite_WM", "Humidite_AQ"])
 
         # Ajouter la colonne Air_Quality_Level et Description
-        merged_df[['Niveau_Qualite_Air', 'Implications_Sante']] = merged_df['Information_Qualite_Air'].apply(
+        merged_df[['Niveau_Qualite_Air']] = merged_df['Information_Qualite_Air'].apply(
             lambda x: pd.Series(get_air_quality_level(x))
         )
         
-        # Remplacement du point par une virgule pour les décimales
-        merged_df[cols_avec_virgule] = merged_df[cols_avec_virgule].applymap(lambda x: str(x).replace(".", ",") if isinstance(x, (float, int)) else x)
-
         ordered_columns = [
-            "Ville", "date", "Description_Temps", "Niveau_Qualite_Air", "Implications_Sante", 
+            "Ville", "date", "Description_Temps", "Niveau_Qualite_Air",
             "Temperature (°C)", "Température_Ressentie (°C)", "Humidité (%)", "Précipitations_1h (mm/h)", 
             "Couverture_Nuageuse (%)", "Information_Qualite_Air", "Indice_IQA_PM_25", "Indice_IQA_PM_10", 
             "Indice_IQA_No2", "Indice_IQA_So2", "Indice_IQA_Ozone", "Pression_Atmosphérique (hPa)", 
@@ -273,6 +266,17 @@ def main():
 
         # Réorganiser le DataFrame selon l'ordre des colonnes
         merged_df = merged_df[ordered_columns]
+
+        renamed_columns = [
+            'Ville', 'date', 'Description_Temps', 'Niveau_Qualite_Air',
+            'Temperature_C', 'Temperature_Ressentie_C', 'Humidite_pourcentage', 'Precipitations_1h_mmh',
+            'Couverture_Nuageuse_pourcentage', 'Information_Qualite_Air', 'Indice_IQA_PM_25', 'Indice_IQA_PM_10',
+            'Indice_IQA_No2', 'Indice_IQA_So2', 'Indice_IQA_Ozone', 'Pression_Atmospherique_hPa',
+            'Niveau_Mer_hPa', 'Pression_Sol_hPa', 'Vent', 'Vitesse_Vent_msec', 'Direction_Vent_DEG',
+            'Rafales_Vent_msec', 'Heure_Lever_Soleil', 'Heure_Coucher_Soleil'
+        ]
+
+        merged_df.columns = renamed_columns
 
         # Ajout aux listes
         if aq_df is not None:
@@ -298,8 +302,10 @@ def main():
     
     if all_merged_df:
         final_merged_df = pd.concat(all_merged_df, ignore_index=True)
-        save_csv(final_merged_df, f"{save_path}Ville_Stat_Meteo.csv")
+        print(final_merged_df.columns.tolist())
+        save_csv(final_merged_df, f"{save_path}Ville_Stat_Meteo_DEMO.csv")
         # save_to_gcs(final_merged_df, "Ville_Stat_Meteo.csv")
+
 
 if __name__ == "__main__":
     main()

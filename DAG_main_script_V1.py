@@ -8,6 +8,8 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import pytz
+from dotenv import load_dotenv
+
 
 default_args = {
     'owner': 'airflow',
@@ -24,6 +26,8 @@ dag = DAG(
     schedule_interval=timedelta(minutes=1),  # Exécution quotidienne
 )
 
+# Charger les variables d'environnement
+load_dotenv()
 
 # # Variables sensibles
 AQ_API_KEY = os.getenv("AQ_API_KEY")
