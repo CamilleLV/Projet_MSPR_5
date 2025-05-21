@@ -15,31 +15,14 @@ AQ_API_KEY = os.getenv("AQ_API_KEY")
 WM_API_KEY = os.getenv("WM_API_KEY")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
 
-# # Charger les villes depuis le fichier JSON
-# with open("C:/Users/camil/OneDrive - Ifag Paris/Cours/MSPR_EID_BLOC_5/Projet_MSPR_5/ville_traitement.json", "r") as file:
-#     VILLES = json.load(file)["villes"]
-
-VILLES = [
-      {"nom": "Lille", "lat": 50.633333, "lon": 3.066667},
-      {"nom": "Nice", "lat": 43.700000, "lon": 7.250000},
-      {"nom": "Strasbourg", "lat": 48.583328, "lon": 7.75},
-      {"nom": "Paris", "lat": 48.866667, "lon": 2.333333},
-      {"nom": "Rennes", "lat": 48.083328, "lon": -1.68333},
-      {"nom": "Nantes", "lat": 47.216671, "lon": -1.55},
-      {"nom": "Marseille", "lat": 43.300000, "lon": 5.400000},
-      {"nom": "Toulouse", "lat": 43.599998, "lon": 1.43333},
-      {"nom": "Lyon", "lat": 45.750000, "lon": 4.850000},
-      {"nom": "Bordeaux", "lat": 44.833328, "lon": -0.56667}
-    ]
+# Charger les villes depuis le fichier JSON
+with open("C:/Users/camil/OneDrive - Ifag Paris/Cours/MSPR_EID_BLOC_5/Projet_MSPR_5/ville_traitement.json", "r") as file:
+    VILLES = json.load(file)["villes"]
 
 
 # URLs des API
 AQ_URL_TEMPLATE = "https://api.waqi.info/feed/{city}/?token={api_key}"
 WM_URL_TEMPLATE = "https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&lang=fr&appid={api_key}"
-# "https://api.openweathermap.org/data/3.0/onecall/day_summary?lat={lat}&lon={lon}&date={date}&units=metric&appid={api_key}"
-# for villes in VILLES:
-#     print(f"Hello {villes}")
-#     url = AQ_URL_TEMPLATE.format(city=villes, api_key=AQ_API_KEY)
 
 def fetch_air_quality(city):
     url = AQ_URL_TEMPLATE.format(city=city, api_key=AQ_API_KEY)
